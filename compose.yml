@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  mariadb:
+    image: mariadb
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootme
+      - MYSQL_DATABASE=go_user_auth

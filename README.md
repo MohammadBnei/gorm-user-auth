@@ -126,5 +126,99 @@ This function returns an error if the passwords do not match, nil otherwise.
 
 ## Database Connection
 
+We want to initialize a database connection on our api startup. For that, we will create two files in a config folder. One will be to load variable from the environnement (aka .env), the other for the mysql database connection.
 
+Let's start with the latter. Create the **config/database.go** file :
+```go
+/*
+InitDB initializes a GORM database connection using the provided Config.
+
+Parameters:
+- config (*Config): A pointer to the Config struct containing database connection details.
+
+Returns:
+- (*gorm.DB): A pointer to the GORM database object.
+- (error): An error object if the connection fails, nil otherwise.
+*/
+func InitDB() (*gorm.DB, error) {
+	dsn := "root:rootme@tcp(127.0.0.1:3306)/go_user_auth?charset=utf8mb4&parseTime=True&loc=Local"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+```
+For now, we will leave the connection string as it is. If you didn't do it already, spin up a mariadb instance using the provided compose.yml file.
+
+Next, we will want to load the connection informations from the environnement.
+Let's write in **config/env.yml** :
+```go
+import (
+	"os"
+
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	DB_HOST string
+	DB_USER string
+	DB_PASS string
+	DB_PORT string
+	DB_NAME string
+}
+
+func InitConfig() *Config {
+	godotenv.Load()
+
+	return &Config{
+		DB_HOST: os.Getenv("DB_HOST"),
+		DB_USER: os.Getenv("DB_USER"),
+		DB_PASS: os.Getenv("DB_PASS"),
+		DB_PORT: os.Getenv("DB_PORT"),
+		DB_NAME: os.Getenv("DB_NAME"),
+	}
+}
+```
+We will be using the [godotenv](https://github.com/joho/godotenv) package to automatically read from a .env file.
+The env file will look like this 
+```sh
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASS=rootme
+DB_NAME=go_user_auth
+```
+
+Let's modify our **InitDB** function to take the incoming config.
+First, add a parameter to the function 
+```go
+func InitDB(config *Config) (*gorm.DB, error)
+```
+
+Then, format the dsn string to interpolate with the config 
+```go
+dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", config.DB_USER, config.DB_PASS, config.DB_HOST, config.DB_PORT, config.DB_NAME)
+```
+
+Let's test this.
+
+Create a **main.go** in the root directory, and tie together our work done so far
+
+```go
+func main() {
+	conf := config.InitConfig()
+	db, err := config.InitDB(conf)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	db.AutoMigrate(&model.User{})
+}
+```
+
+Don't forget to run ```go mod tidy``` once in a while.
+
+To run our little api, type ```go run main.go``` in your terminal. If you don't see any error, you should be good to continue.
 
