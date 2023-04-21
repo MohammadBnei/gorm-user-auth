@@ -3,6 +3,7 @@ package handler
 import (
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/MohammadBnei/gorm-user-auth/model"
 	"github.com/MohammadBnei/gorm-user-auth/service"
@@ -19,6 +20,28 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 	}
 }
 
+type UserRespone struct {
+	ID        int       `json:"id"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+// GetUser godoc
+// @Summary      Get a User
+// @Description  get user by ID
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {object}  UserRespone
+// @Failure      400  {object}  ErrorResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /user/{id} [get]
 /*
 GetUser gets a user by their ID from the userService and returns it in the response body.
 
@@ -51,6 +74,16 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	c.JSON(200, user)
 }
 
+// GetUsers godoc
+// @Summary      Get all Users
+// @Description  get all users with no filter
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  UserRespone[]
+// @Failure      400  {object}  ErrorResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /user [get]
 func (h *UserHandler) GetUsers(c *gin.Context) {
 	users, err := h.userService.GetUsers()
 	if err != nil {

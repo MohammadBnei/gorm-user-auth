@@ -4,12 +4,20 @@ import (
 	"log"
 
 	"github.com/MohammadBnei/gorm-user-auth/config"
+	_ "github.com/MohammadBnei/gorm-user-auth/docs"
 	"github.com/MohammadBnei/gorm-user-auth/handler"
 	"github.com/MohammadBnei/gorm-user-auth/model"
 	"github.com/MohammadBnei/gorm-user-auth/service"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+//	@title			Gorm User & Auth
+//	@version		0.0.3
+//	@description	This is a simple user registration and auth server with automatic jwt renewal.
+
+//	@BasePath	/api/v1
 func main() {
 	conf := config.InitConfig()
 	db, err := config.InitDB(conf)
@@ -25,6 +33,8 @@ func main() {
 	authHandler := handler.NewAuthHandler(rtService, userService, conf)
 
 	r := gin.Default()
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	userApi := r.Group("/api/v1/user")
 	userApi.GET("/:id", userHandler.GetUser)

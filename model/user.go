@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// swagger:model
 type User struct {
 	gorm.Model
 	Email    string `json:"email"`
