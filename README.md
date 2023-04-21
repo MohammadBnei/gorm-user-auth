@@ -510,7 +510,7 @@ Let's dive into the handler for the login request. We need to extract the JSON b
 	Exercice
 
 	Create the LoginDTO in the model folder
-	
+
 ```go
 /*
 Login handles the login request. It parses the request body into a LoginDTO struct
@@ -688,20 +688,93 @@ func (authHandler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 
 ## Swagger
 
-It's important to document our API. To do that, let's use [go-swagger](https://goswagger.io/). First, install the swagger binary from [here](https://goswagger.io/install.html).
-
-Then, let's initialize our swagger file :
+It's important to document our API. To do that, let's use [swag](https://github.com/swaggo/swag#how-to-use-it-with-gin). First, install the swag binary :
 ```sh
-swagger init spec \
-  --title "Gorm User & Auth" \
-  --description "A simple registration server with automatic jwt renewal" \
-  --version 0.0.3 \
-  --scheme http \
-	--consumes application/json \
-  --produces application/json
+go install github.com/swaggo/swag/cmd/swag@latest
 ```
 
-To validate the produced swagger.yml, this is the command 
+Then, let's initialize our swagger docs :
 ```sh
-swagger validate ./swagger.yml
+swag init
 ```
+It should create a new **docs** folder.
+Now, everytime you make a swagger documentation change, you need to run swag init so that it can generate the documentation from the godoc comments.
+
+In **main.go**, we'll put the basic api documentation with the route to the swagger docs.
+
+Just before the main function declaration, add the following comments :
+```go
+//	@title			Gorm User & Auth
+//	@version		0.0.3
+//	@description	This is a simple user registration and auth server with automatic jwt renewal.
+
+//	@BasePath	/api/v1
+func main()
+```
+
+Then, let's add the correct import :
+```go
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+```
+
+Finally, we'll setup the swagger route :
+```go
+	r := gin.Default()
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+```
+
+After running ```swag init``` and starting the server, the documentation should be avalaible at http://localhost:8080/swagger/index.html .
+
+With that setup, you can add annotation to every route so they are documented.
+
+### User routes
+
+In **handler/user.go**, we'll setup the user routes.
+First, because swag cannot go through the grom.Model we added to our user model, we need to specify here the response and error type (specifically for swagger):
+```go
+type UserRespone struct {
+	ID        int       `json:"id"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+```
+
+Now we can add the swagger documentation for our first functions :
+```go
+// GetUser godoc
+// @Summary      Get a User
+// @Description  get user by ID
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {object}  UserRespone
+// @Failure      400  {object}  ErrorResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /user/{id} [get]
+func (h *UserHandler) GetUser(c *gin.Context)
+
+
+// GetUsers godoc
+// @Summary      Get all Users
+// @Description  get all users with no filter
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  UserRespone[]
+// @Failure      400  {object}  ErrorResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /user [get]
+func (h *UserHandler) GetUsers(c *gin.Context)
+```
+
+	Exercice
+
+	Add the rest of the swagger annotation. It should be visible and querryable from the UI.

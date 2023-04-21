@@ -1,0 +1,78 @@
+basePath: /api/v1
+definitions:
+  handler.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handler.UserRespone:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is a simple user registration and auth server with automatic jwt
+    renewal.
+  title: Gorm User & Auth
+  version: 0.0.3
+paths:
+  /user:
+    get:
+      consumes:
+      - application/json
+      description: get all users with no filter
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.UserRespone'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get all Users
+      tags:
+      - User
+  /user/{id}:
+    get:
+      consumes:
+      - application/json
+      description: get user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.UserRespone'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get a User
+      tags:
+      - User
+swagger: "2.0"
