@@ -8,7 +8,7 @@ import (
 
 type RefreshToken struct {
 	gorm.Model
-	User   User
+	User   User   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UserId int    `json:"userId" gorm:"<-:create"`
 	Ip     string `json:"ip" gorm:"<-:create"`
 	Hash   string `json:"hash" gorm:"<-:create unique"`

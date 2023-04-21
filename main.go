@@ -17,10 +17,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	db.AutoMigrate(&model.User{})
+	db.AutoMigrate(&model.User{}, &model.RefreshToken{})
 
 	userService := service.NewUserService(db)
+	rtService := service.NewRTService(db)
 	userHandler := handler.NewUserHandler(userService)
+	authHandler := handler.NewAuthHandler(rtService, userService, conf)
 
 	r := gin.Default()
 
@@ -30,6 +32,9 @@ func main() {
 	userApi.POST("/", userHandler.CreateUser)
 	userApi.PUT("/:id", userHandler.UpdateUser)
 	userApi.DELETE("/:id", userHandler.DeleteUser)
+
+	authApi := r.Group("/api/v1/auth")
+	authApi.POST("/login", authHandler.Login)
 
 	r.Run()
 }
