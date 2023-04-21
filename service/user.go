@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/MohammadBnei/go-user-auth/model"
+	"github.com/MohammadBnei/gorm-user-auth/model"
 	"gorm.io/gorm"
 )
 

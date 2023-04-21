@@ -414,4 +414,5 @@ It can last a month or more, and is used to refresh the jwt token. We store it i
 
 Let's dive in.
 
+## RT (Refresh Token) Model
 

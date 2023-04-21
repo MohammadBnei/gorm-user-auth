@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
-	"github.com/MohammadBnei/go-user-auth/config"
-	"github.com/MohammadBnei/go-user-auth/handler"
-	"github.com/MohammadBnei/go-user-auth/model"
-	"github.com/MohammadBnei/go-user-auth/service"
+	"github.com/MohammadBnei/gorm-user-auth/config"
+	"github.com/MohammadBnei/gorm-user-auth/handler"
+	"github.com/MohammadBnei/gorm-user-auth/model"
+	"github.com/MohammadBnei/gorm-user-auth/service"
 	"github.com/gin-gonic/gin"
 )
 
