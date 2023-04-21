@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/MohammadBnei/gorm-user-auth/model"
 	"github.com/kjk/betterguid"
 	"gorm.io/gorm"
@@ -45,11 +47,12 @@ func (rt *RTService) CreateRT(ip string, userId int) (*model.RefreshToken, error
 }
 
 func (rt *RTService) GetRT(hash string) (*model.RefreshToken, error) {
-	var token *model.RefreshToken
-	err := rt.db.Where("hash = ?", hash).First(token).Error
+	var token model.RefreshToken
+	err := rt.db.Where("hash = ?", hash).Preload("User").First(&token).Error
+	fmt.Println(token, err)
 	if err != nil {
 		return nil, err
 	}
 
-	return token, nil
+	return &token, nil
 }
