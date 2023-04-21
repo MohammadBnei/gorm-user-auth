@@ -315,7 +315,7 @@ func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error)
 		Email:    data.Email,
 		Password: data.Password,
 	}
-	err := s.Db.Create(&user).Error
+	err := s.Db.Save(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -326,5 +326,5 @@ func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error)
 
 	Exercice
 
-	Write the update function.
+	Write the update function. This function should return the updated user.
 

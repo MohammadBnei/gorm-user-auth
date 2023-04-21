@@ -115,7 +115,7 @@ func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error)
 		Email:    data.Email,
 		Password: data.Password,
 	}
-	err := s.Db.Create(&user).Error
+	err := s.Db.Save(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +139,18 @@ Returns:
 
   - error: if any error occurred during the update
 */
-func (s *UserService) UpdateUser(id int, data *model.UserUpdateDTO) error {
-	return s.Db.Model(&model.User{}).Where("id = ?", id).Updates(data).Error
+func (s *UserService) UpdateUser(id int, data *model.UserUpdateDTO) (*model.User, error) {
+	user, err := s.GetUser(id)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Email = data.Email
+
+	err = s.Db.Save(&user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
