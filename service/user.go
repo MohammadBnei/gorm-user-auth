@@ -6,7 +6,7 @@ import (
 )
 
 type UserService struct {
-	Db *gorm.DB
+	db *gorm.DB
 }
 
 /*
@@ -23,7 +23,7 @@ Returns:
 */
 func NewUserService(db *gorm.DB) *UserService {
 	return &UserService{
-		Db: db,
+		db: db,
 	}
 }
 
@@ -42,7 +42,7 @@ Return values:
 */
 func (s *UserService) GetUser(id int) (*model.User, error) {
 	var user model.User
-	err := s.Db.First(&user, id).Error
+	err := s.db.First(&user, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ Returns:
 */
 func (s *UserService) GetUsers() ([]*model.User, error) {
 	var users []*model.User
-	err := s.Db.Find(&users).Error
+	err := s.db.Find(&users).Error
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ fmt.Printf("Retrieved user: %#v\n", u)
 */
 func (s *UserService) GetUserByEmail(email string) (*model.User, error) {
 	var user model.User
-	err := s.Db.Where("email = ?", email).First(&user).Error
+	err := s.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error)
 		Email:    data.Email,
 		Password: data.Password,
 	}
-	err := s.Db.Save(&user).Error
+	err := s.db.Save(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error)
 }
 
 func (s *UserService) DeleteUser(id int) error {
-	return s.Db.Delete(&model.User{}, id).Error
+	return s.db.Delete(&model.User{}, id).Error
 }
 
 /*
@@ -147,7 +147,7 @@ func (s *UserService) UpdateUser(id int, data *model.UserUpdateDTO) (*model.User
 
 	user.Email = data.Email
 
-	err = s.Db.Save(&user).Error
+	err = s.db.Save(&user).Error
 	if err != nil {
 		return nil, err
 	}
