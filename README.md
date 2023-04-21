@@ -206,7 +206,7 @@ We will expose our CRUD User service in a struct, called UserService. We will th
 Inside **service/user.go**, we will initialize our user service by creating a struct with the according New function 
 ```go
 type UserService struct {
-	Db *gorm.DB
+	db *gorm.DB
 }
 
 /*
@@ -223,7 +223,7 @@ Returns:
 */
 func NewUserService(db *gorm.DB) *UserService {
 	return &UserService{
-		Db: db,
+		db: db,
 	}
 }
 ```
@@ -246,7 +246,7 @@ Return values:
 */
 func (s *UserService) GetUser(id int) (*model.User, error) {
 	var user model.User
-	err := s.Db.First(&user, id).Error
+	err := s.db.First(&user, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +264,7 @@ Returns:
 */
 func (s *UserService) GetUsers() ([]*model.User, error) {
 	var users []*model.User
-	err := s.Db.Find(&users).Error
+	err := s.db.Find(&users).Error
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +315,7 @@ func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error)
 		Email:    data.Email,
 		Password: data.Password,
 	}
-	err := s.Db.Save(&user).Error
+	err := s.db.Save(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -328,3 +328,75 @@ func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error)
 
 	Write the update function. This function should return the updated user.
 
+## Gin Handler
+
+We have our service, our model and our database connection. Let's add the last functionnal part by creating the controller, aka gin handler.
+This controller will be in charge of taking the incomming request, parsing it's body and parameters, and call the appropriate service function.
+
+In a **handler/user.go** file, proceed to write the following initializer 
+```go
+type UserHandler struct {
+	userService *service.UserService
+}
+
+func NewUserHandler(userService *service.UserService) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+	}
+}
+```
+
+A basic get function will look like this
+```go
+/*
+GetUser gets a user by their ID from the userService and returns it in the response body.
+
+Parameters:
+  - c (*gin.Context): the context of the current HTTP request
+  - h (*UserHandler): the handler that handles user-related requests
+
+Errors:
+  - 400 Bad Request: if the parameter id cannot be converted to an integer, or if there is an error retrieving the user
+*/
+func (h *UserHandler) GetUser(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Println(err)
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	user, err := h.userService.GetUser(id)
+	if err != nil {
+		log.Println(err)
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, user)
+}
+```
+The id is retrieved from the route, and we will implement the router now to test that our api starts.
+
+Finally, add the following to the main and try starting your api 
+```go
+userService := service.NewUserService(db)
+userHandler := handler.NewUserHandler(userService)
+
+r := gin.Default()
+
+userApi := r.Group("/api/v1/user")
+userApi.GET("/:id", userHandler.GetUser)
+
+r.Run()
+```
+
+If you can ```curl localhost:8080/api/v1/user/2``` and get a *{"error":"record not found"}*, everything is good.
+
+	Exercice
+
+	Write the rest of the CRUD functions to the service. Add the according route and test it out.
