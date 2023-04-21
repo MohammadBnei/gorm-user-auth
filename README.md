@@ -27,6 +27,8 @@ We will divide our code with logical slices, and we will have the following fold
 
 ## User
 
+To bypass the basic user setup, you can checkout the [feat/user branch](https://github.com/MohammadBnei/gorm-user-auth/tree/feat/user)
+
 ### User model
 
 We need to create a user with basic data (id, email, password and timestamps). 
