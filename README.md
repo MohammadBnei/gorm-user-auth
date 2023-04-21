@@ -25,7 +25,9 @@ We will divide our code with logical slices, and we will have the following fold
  - Model : this package will contain all the models used with the database orm.
 
 
-## The User model
+## User
+
+### User model
 
 We need to create a user with basic data (id, email, password and timestamps). 
 Create a new file called **model/user.go**, and initialize it with the correct package name.
@@ -102,7 +104,7 @@ func (u *User) CheckPassword(password string) error {
 ```
 This function returns an error if the passwords do not match, nil otherwise.
 
-## Database Connection
+### Database Connection
 
 We want to initialize a database connection on our api startup. For that, we will create two files in a config folder. One will be to load variable from the environnement (aka .env), the other for the mysql database connection.
 
@@ -200,7 +202,7 @@ Don't forget to run ```go mod tidy``` once in a while.
 
 To run our little api, type ```go run main.go``` in your terminal. If you don't see any error, you should be good to continue.
 
-## User Service
+### User Service
 
 We will expose our CRUD User service in a struct, called UserService. We will then have a layer of isolation between our controller and our ORM, which is always a good practice.
 
@@ -329,7 +331,7 @@ func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error)
 
 	Write the update function. This function should return the updated user.
 
-## Gin Handler
+### Gin Handler
 
 We have our service, our model and our database connection. Let's add the last functionnal part by creating the controller, aka gin handler.
 This controller will be in charge of taking the incomming request, parsing it's body and parameters, and call the appropriate service function.
@@ -401,3 +403,15 @@ If you can ```curl localhost:8080/api/v1/user/2``` and get a *{"error":"record n
 	Exercice
 
 	Write the rest of the CRUD functions to the service. Add the according route and test it out.
+
+If you are tired of killing and re-runnig your api, you can use [gowatch](https://github.com/silenceper/gowatch). This is a file watcher and go builder that automatically restart whenever you make a change.
+
+## JWT and Refresh Token
+
+So, you already know the logic of a jwt. We store the user's information inside it, we secure it with a key, and we set an expiration time on it.
+The refresh token acts like a second key, simpler as it has no information inside it, that enable long term jwt regeneration. 
+It can last a month or more, and is used to refresh the jwt token. We store it in the cookies of a browser, alongside the jwt. And when a client closes his laptop and later re-enters our site, he does not have to write his connection information again.
+
+Let's dive in.
+
+

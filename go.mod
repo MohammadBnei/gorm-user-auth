@@ -1,4 +1,4 @@
-module github.com/MohammadBnei/gorm-user-auth
+module github.com/MohammadBnei/go-user-auth
 
 go 1.20
 
