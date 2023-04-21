@@ -27,6 +27,8 @@ We will divide our code with logical slices, and we will have the following fold
 
 ## User
 
+To bypass the basic user setup, you can checkout the [feat/user branch](https://github.com/MohammadBnei/gorm-user-auth/tree/feat/user)
+
 ### User model
 
 We need to create a user with basic data (id, email, password and timestamps). 
@@ -416,3 +418,28 @@ Let's dive in.
 
 ## RT (Refresh Token) Model
 
+### RT Model
+
+We want to save the refresh token in the database, and link it with a foreign key to the user.
+Let's create the **model/refreshToken.go** file 
+```go
+type RefreshToken struct {
+	gorm.Model
+	User   User
+	UserId int    `json:"userId" gorm:"<-:create"`
+	Ip     string `json:"ip" gorm:"<-:create"`
+	Hash   string `json:"hash" gorm:"<-:create unique index"`
+}
+
+func (rt *RefreshToken) BeforeCreate(tx *gorm.DB) (err error) {
+	rt.CreatedAt = time.Now()
+	rt.UpdatedAt = time.Now()
+
+	return
+}
+```
+We will use gorm annotation to provide settings to the refresh token model. "<-:create" specify that the field is only writable upon creation.
+
+	Exercice
+
+	Write the refresh token service to handle creation and retrieval of a refresh token by hash.
