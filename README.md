@@ -506,6 +506,11 @@ func (authHandler *AuthHandler) GenerateToken(user *model.User) (string, error) 
 We'll use this [jwt package](https://github.com/golang-jwt/jwt).
 
 Let's dive into the handler for the login request. We need to extract the JSON body, check the email and password, create the two tokens and add them to the cookie and the JSON response
+
+	Exercice
+
+	Create the LoginDTO in the model folder
+	
 ```go
 /*
 Login handles the login request. It parses the request body into a LoginDTO struct
@@ -680,3 +685,23 @@ func (authHandler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 	Then, try to get the user from the gin context and return it in the response.
 
 	Add the automatic renewal of the refresh token.  This renewal will take effect only when the jwt is expired.
+
+## Swagger
+
+It's important to document our API. To do that, let's use [go-swagger](https://goswagger.io/). First, install the swagger binary from [here](https://goswagger.io/install.html).
+
+Then, let's initialize our swagger file :
+```sh
+swagger init spec \
+  --title "Gorm User & Auth" \
+  --description "A simple registration server with automatic jwt renewal" \
+  --version 0.0.3 \
+  --scheme http \
+	--consumes application/json \
+  --produces application/json
+```
+
+To validate the produced swagger.yml, this is the command 
+```sh
+swagger validate ./swagger.yml
+```
