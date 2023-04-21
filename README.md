@@ -70,37 +70,14 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 
 	return
 }
-
-/*
-BeforeSave is a function that updates the User's update time and hashes
-the password if it has been changed before saving to the database.
-
-Args:
-
-	u (*User): a pointer to a User struct that includes the password to be hashed.
-	tx (*gorm.DB): a GORM database transaction.
-
-Returns:
-
-	err (error): an error that occurred while setting the CreatedAt and UpdatedAt fields, hashing the password, or storing the hashed password in the Password field.
-*/
-func (u *User) BeforeSave(tx *gorm.DB) (err error) {
-	u.UpdatedAt = time.Now()
-
-	if tx.Statement.Changed("Password") {
-		hashedPassword, error := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-		if error != nil {
-			err = error
-			return
-		}
-
-		u.Password = string(hashedPassword)
-	}
-
-	return
-}
 ```
+
 Using [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt), we set up the hooks to hash the password upon new creation. We also handle the timestamps this way.
+
+	Exercice
+	
+	Write a Before save hook to handle the update of the updatedAt timestamp. 
+	At the same time, verify if the password field is being updated. If so, re-hash it.
 
 Finally, as the password is hashed, we need to provide a function to test a plaintext password 
 ```go
@@ -221,4 +198,133 @@ func main() {
 Don't forget to run ```go mod tidy``` once in a while.
 
 To run our little api, type ```go run main.go``` in your terminal. If you don't see any error, you should be good to continue.
+
+## User Service
+
+We will expose our CRUD User service in a struct, called UserService. We will then have a layer of isolation between our controller and our ORM, which is always a good practice.
+
+Inside **service/user.go**, we will initialize our user service by creating a struct with the according New function 
+```go
+type UserService struct {
+	Db *gorm.DB
+}
+
+/*
+NewUserService returns a new instance of the UserService struct with the provided gorm.DB instance
+as its database connection.
+
+Parameters:
+
+- db (*gorm.DB): The gorm.DB instance to use as the database connection.
+
+Returns:
+
+- (*UserService): A pointer to the newly created UserService instance.
+*/
+func NewUserService(db *gorm.DB) *UserService {
+	return &UserService{
+		Db: db,
+	}
+}
+```
+
+
+Now, let's write our basic Read functions :
+```go
+/*
+GetUser retrieves a user by ID from the database.
+
+Parameters:
+
+	s - a pointer to a UserService instance
+	id - the ID of the user to retrieve
+
+Return values:
+
+	*model.User - a pointer to the retrieved user object
+	error - if any error occurs while retrieving the user, it is returned here
+*/
+func (s *UserService) GetUser(id int) (*model.User, error) {
+	var user model.User
+	err := s.Db.First(&user, id).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+/*
+GetUsers retrieves all users from the database.
+
+Returns:
+
+  - []*model.User: A slice of user objects.
+  - error: An error object if the query fails.
+*/
+func (s *UserService) GetUsers() ([]*model.User, error) {
+	var users []*model.User
+	err := s.Db.Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+```
+
+	Exercice
+
+	Write a delete function that takes in an id, deletes the record, and returns the deleted record. Don't forget to handle the possible errors (at least not found).
+
+	Write a GetByEmail that fetches user by email. As we did not specify uniqueness on the email field, these search would possibly return multiple records.
+
+To create and update a user, we will create the according DTO. These struct will help us maintain a clean code, while providing knowledge of the API later with swagger.
+
+In **model/userDTO.go**, we will setup the create and update object. 
+```go
+type UserCreateDTO struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserUpdateDTO struct {
+	Email string `json:"email"`
+}
+```
+
+For good practice, we will disallow the user from directly update his password with the CRUD update function.
+
+With these DTO, let's write the create function
+```go
+/*
+CreateUser creates a new user in the UserService database.
+
+Args:
+
+  - s (*UserService): A pointer to the UserService instance.
+  - data (*model.UserCreateDTO): A pointer to the data used to create the new user.
+
+Returns:
+
+  - (*model.User): A pointer to the newly created user.
+  - (error): An error if the creation failed.
+*/
+func (s *UserService) CreateUser(data *model.UserCreateDTO) (*model.User, error) {
+	user := &model.User{
+		Email:    data.Email,
+		Password: data.Password,
+	}
+	err := s.Db.Create(&user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+```
+
+	Exercice
+
+	Write the update function.
 
