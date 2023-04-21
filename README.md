@@ -442,7 +442,7 @@ We will use gorm annotation to provide settings to the refresh token model. "<-:
 
 	Exercice
 
-	Write the refresh token service to handle creation and retrieval of a refresh token by hash.
+	Write the refresh token service to handle creation and retrieval of a refresh token by hash. be careful, gorm does not load the relations by default !
 
 ## JWT Authentification
 
@@ -678,3 +678,5 @@ func (authHandler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 
 	Add this middleware to a hello world route and test it with the jwt in the cookie and in the authorization header.
 	Then, try to get the user from the gin context and return it in the response.
+
+	Add the automatic renewal of the refresh token.  This renewal will take effect only when the jwt is expired.
