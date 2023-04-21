@@ -135,7 +135,7 @@ func InitDB() (*gorm.DB, error) {
 For now, we will leave the connection string as it is. If you didn't do it already, spin up a mariadb instance using the provided compose.yml file.
 
 Next, we will want to load the connection informations from the environnement.
-Let's write in **config/env.yml** :
+Let's write in **config/env.go** :
 ```go
 import (
 	"os"
