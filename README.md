@@ -587,3 +587,94 @@ func (authHandler *AuthHandler) Login(c *gin.Context) {
 	Exercice
 
 	Add the handler to the login route. This route should be under the auth group, with a base url like "api/v1/auth". You'll need to instanciate the handler and the refresh token service in the main.go file.
+
+You can now verify with the created route that the login is working, returning a jwt, a refresh token, and the user. Also verify the errors when putting an incorrect email and/or password.
+
+Let's create a custom auth middleware. The following code defines a middleware function called AuthMiddleware that handles user authentication using JWT tokens. It takes in an AuthHandler instance containing JWTSECRET and a gin.Context instance as parameters, and returns a function that handles the middleware. The function first checks for the JWT token in the cookie or the Authorization header of the request, and extracts it. Then it verifies the token using the JWTSECRET from the AuthHandler instance, and extracts the user information from the token. Finally, it sets the user information in the gin.Context and passes the request to the next middleware.
+```go
+/*
+AuthMiddleware is a middleware function that handles user authentication using JWT tokens.
+
+Parameters:
+- authHandler (*AuthHandler): A pointer to an AuthHandler instance containing JWT_SECRET.
+- c (*gin.Context): A pointer to the gin.Context instance.
+
+Returns:
+- gin.HandlerFunc: A function that handles the middleware.
+*/
+func (authHandler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// before request
+		jwtToken, err := c.Cookie("jwt")
+		if err == http.ErrNoCookie {
+			authHeader := c.GetHeader("Authorization")
+			splitToken := strings.Split(authHeader, "Bearer ")
+			if len(splitToken) != 2 {
+				c.JSON(401, gin.H{
+					"error": "cannot extract token from authorization header",
+				})
+				c.Abort()
+				return
+			}
+			jwtToken = splitToken[1]
+
+			if jwtToken == "" {
+				c.JSON(401, gin.H{
+					"error": "no token provided",
+				})
+				c.Abort()
+				return
+			}
+		}
+		if err != nil {
+			c.JSON(401, gin.H{
+				"error": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+
+		token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(authHandler.JWT_SECRET), nil
+		})
+		if err != nil {
+			c.JSON(401, gin.H{
+				"error": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+		if !token.Valid {
+			c.JSON(401, gin.H{
+				"error": "invalid token",
+			})
+			c.Abort()
+			return
+		}
+
+		userId := token.Claims.(jwt.MapClaims)["id"].(float64)
+		user, err := authHandler.UserService.GetUser(int(userId))
+		if err != nil {
+			c.JSON(401, gin.H{
+				"error": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+
+		c.Set("user", user)
+
+		c.Next()
+
+		// after request
+	}
+}
+```
+
+	Exercice
+
+	Add this middleware to a hello world route and test it with the jwt in the cookie and in the authorization header.
+	Then, try to get the user from the gin context and return it in the response.

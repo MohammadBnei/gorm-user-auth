@@ -36,5 +36,19 @@ func main() {
 	authApi := r.Group("/api/v1/auth")
 	authApi.POST("/login", authHandler.Login)
 
+	r.GET("/test/auth", authHandler.AuthMiddleware(), func(c *gin.Context) {
+		user, exist := c.Get("user")
+
+		if !exist {
+			c.JSON(401, gin.H{
+				"error": "no user in the context",
+			})
+			return
+		}
+		c.JSON(200, gin.H{
+			"user": user,
+		})
+	})
+
 	r.Run()
 }

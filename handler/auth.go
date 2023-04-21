@@ -2,6 +2,8 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/MohammadBnei/gorm-user-auth/config"
@@ -117,12 +119,93 @@ func (authHandler *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("jwt", jwt, 3600, "/", "*", true, true)
-	c.SetCookie("rt", rt.Hash, 3600, "/", "*", true, true)
+	c.SetCookie("jwt", jwt, 3600, "/", "*", false, true)
+	c.SetCookie("rt", rt.Hash, 3600, "/", "*", false, true)
 
 	c.JSON(200, gin.H{
 		"token":        jwt,
 		"refreshToken": rt.Hash,
 		"user":         user,
 	})
+}
+
+/*
+AuthMiddleware is a middleware function that handles user authentication using JWT tokens.
+
+Parameters:
+- authHandler (*AuthHandler): A pointer to an AuthHandler instance containing JWT_SECRET.
+- c (*gin.Context): A pointer to the gin.Context instance.
+
+Returns:
+- gin.HandlerFunc: A function that handles the middleware.
+*/
+func (authHandler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// before request
+		jwtToken, err := c.Cookie("jwt")
+		if err == http.ErrNoCookie {
+			authHeader := c.GetHeader("Authorization")
+			splitToken := strings.Split(authHeader, "Bearer ")
+			if len(splitToken) != 2 {
+				c.JSON(401, gin.H{
+					"error": "cannot extract token from authorization header",
+				})
+				c.Abort()
+				return
+			}
+			jwtToken = splitToken[1]
+
+			if jwtToken == "" {
+				c.JSON(401, gin.H{
+					"error": "no token provided",
+				})
+				c.Abort()
+				return
+			}
+		}
+		if err != nil {
+			c.JSON(401, gin.H{
+				"error": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+
+		token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(authHandler.JWT_SECRET), nil
+		})
+		if err != nil {
+			c.JSON(401, gin.H{
+				"error": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+		if !token.Valid {
+			c.JSON(401, gin.H{
+				"error": "invalid token",
+			})
+			c.Abort()
+			return
+		}
+
+		userId := token.Claims.(jwt.MapClaims)["id"].(float64)
+		user, err := authHandler.UserService.GetUser(int(userId))
+		if err != nil {
+			c.JSON(401, gin.H{
+				"error": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+
+		c.Set("user", user)
+
+		c.Next()
+
+		// after request
+	}
 }
