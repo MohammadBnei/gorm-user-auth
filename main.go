@@ -26,6 +26,10 @@ func main() {
 
 	userApi := r.Group("/api/v1/user")
 	userApi.GET("/:id", userHandler.GetUser)
+	userApi.GET("/", userHandler.GetUsers)
+	userApi.POST("/", userHandler.CreateUser)
+	userApi.PUT("/:id", userHandler.UpdateUser)
+	userApi.DELETE("/:id", userHandler.DeleteUser)
 
 	r.Run()
 }

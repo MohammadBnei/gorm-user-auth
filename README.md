@@ -37,9 +37,10 @@ This is the code for the User struct
 type User struct {
 	gorm.Model
 	Email    string `json:"email"`
-	Password string `json:"password"`
+	Password string `json:"-"`
 }
 ```
+Notice the json:"-" ? This instruct the JSON marshaller to ignore this field.
 
 Next, we write the hooks to handle user specific logic
 ```go
