@@ -43,6 +43,12 @@ func (rt *RTService) CreateRT(ip string, userId int) (*model.RefreshToken, error
 		return nil, err
 	}
 
+	var previousTokens []model.RefreshToken
+	err = rt.db.Where("ip = ? AND user_id = ? AND NOT hash = ?", ip, userId, hash).Delete(previousTokens).Error
+	if err != nil {
+		return nil, err
+	}
+
 	return token, nil
 }
 

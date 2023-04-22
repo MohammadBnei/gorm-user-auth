@@ -70,20 +70,18 @@ response is returned with the JWT, the refresh token, and the user object.
 func (authHandler *AuthHandler) Login(c *gin.Context) {
 	var loginDTO *model.LoginDTO
 
+	returnError := curryReturnError(c, false)
+
 	if err := c.ShouldBindJSON(&loginDTO); err != nil {
 		fmt.Println(err)
-		c.JSON(400, gin.H{
-			"error": err.Error(),
-		})
+		returnError(err)
 		return
 	}
 
 	user, err := authHandler.UserService.GetUserByEmail(loginDTO.Email)
 	if err != nil {
 		fmt.Println(err)
-		c.JSON(400, gin.H{
-			"error": err.Error(),
-		})
+		returnError(err)
 		return
 	}
 
@@ -91,13 +89,9 @@ func (authHandler *AuthHandler) Login(c *gin.Context) {
 	if err != nil {
 		fmt.Println(err)
 		if err == bcrypt.ErrMismatchedHashAndPassword {
-			c.JSON(400, gin.H{
-				"error": "incorrect password",
-			})
+			returnError(errors.New("incorrect password"))
 		} else {
-			c.JSON(400, gin.H{
-				"error": err.Error(),
-			})
+			returnError(err)
 		}
 		return
 	}
@@ -105,18 +99,14 @@ func (authHandler *AuthHandler) Login(c *gin.Context) {
 	jwt, err := authHandler.GenerateToken(user)
 	if err != nil {
 		fmt.Println(err)
-		c.JSON(400, gin.H{
-			"error": err.Error(),
-		})
+		returnError(err)
 		return
 	}
 
 	rt, err := authHandler.RTService.CreateRT(c.ClientIP(), int(user.ID))
 	if err != nil {
 		fmt.Println(err)
-		c.JSON(400, gin.H{
-			"error": err.Error(),
-		})
+		returnError(err)
 		return
 	}
 
@@ -144,38 +134,33 @@ func (authHandler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// before request
 
+		returnErrorWithAbort := curryReturnError(c, true)
+		returnError := curryReturnError(c, false)
+
 		// First, trying to extract the jwt from the cookie
 		jwtToken, err := c.Cookie("jwt")
 
 		// If not present, proceed to extract it from the Authorization header
+		if err != nil && err != http.ErrNoCookie {
+			returnError(err)
+			return
+		}
+
 		if err == http.ErrNoCookie {
+
 			authHeader := c.GetHeader("Authorization")
 			// Using Bearer prefix
 			splitToken := strings.Split(authHeader, "Bearer ")
 			if len(splitToken) != 2 {
-				c.JSON(401, gin.H{
-					"error": "no token provided",
-				})
-				c.Abort()
+				returnErrorWithAbort(errors.New("no token provided"))
 				return
 			}
 			jwtToken = splitToken[1]
 
 			if jwtToken == "" {
-				c.JSON(401, gin.H{
-					"error": "no token provided",
-				})
-				c.Abort()
+				returnErrorWithAbort(errors.New("no token provided"))
 				return
 			}
-		}
-		// If the error is anything else beside ErrNoCookie
-		if err != nil {
-			c.JSON(401, gin.H{
-				"error": err.Error(),
-			})
-			c.Abort()
-			return
 		}
 
 		// Parsing the token
@@ -189,60 +174,58 @@ func (authHandler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 			return []byte(authHandler.JWT_SECRET), nil
 		})
 
-		// If the token is expired, let's trying to update it with the refresh token
-		if errors.Is(err, jwt.ErrTokenExpired) {
+		if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
+			returnError(err)
+			return
+		}
+
+		err = func(c *gin.Context) error {
+			// If the token is expired, let's try to update it with the refresh token
+			if !errors.Is(err, jwt.ErrTokenExpired) {
+				return err
+			}
 			// This time, only getting the refresh token from the cookie. No header
 			rtToken, err := c.Cookie("rt")
-			// If we get a token, this part will handle all the logic. It means that it does not return to the main part.
-			if err == nil {
-				rt, err := authHandler.RTService.GetRT(rtToken)
-				if err != nil {
-					c.JSON(401, gin.H{
-						"error": "token expired, unable to automatically refresh : " + err.Error(),
-					})
-					c.Abort()
-					return
-				}
 
-				// By default, without using the Preload method, the user will be an empty struct
-				if rt.User.ID == 0 {
-					c.JSON(401, gin.H{
-						"error": "token expired, unable to automatically refresh. Something went wrong retrieving the user",
-					})
-					c.Abort()
-					return
-				}
-
-				c.Set("user", rt.User)
-
-				// Regenerating the cookie and putting it in the response's cookies
-				newJwt, err := authHandler.GenerateToken(&rt.User)
-				if err != nil {
-					fmt.Println(err)
-				}
-
-				c.SetCookie("jwt", newJwt, 3600, "/", "*", false, true)
-
-				c.Next()
-
-				return
+			if err != nil {
+				return err
 			}
-		}
+			// If we get a token, this part will handle all the logic. It means that it does not return to the main part.
+			rt, err := authHandler.RTService.GetRT(rtToken)
+			if err != nil {
+				return err
+			}
+
+			// By default, without using the Preload method, the user will be an empty struct
+			if rt.User.ID == 0 {
+				return errors.New("token expired, unable to automatically refresh. Something went wrong retrieving the user")
+			}
+
+			c.Set("user", rt.User)
+
+			// Regenerating the cookie and putting it in the response's cookies
+			newJwt, err := authHandler.GenerateToken(&rt.User)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+
+			c.SetCookie("jwt", newJwt, 3600, "/", "*", false, true)
+
+			c.Next()
+
+			return nil
+		}(c)
+
 		if err != nil {
-			c.JSON(401, gin.H{
-				"error": err.Error(),
-			})
-			c.Abort()
+			returnErrorWithAbort(err)
 			return
 		}
 
 		userId := token.Claims.(jwt.MapClaims)["id"].(float64)
 		user, err := authHandler.UserService.GetUser(int(userId))
 		if err != nil {
-			c.JSON(401, gin.H{
-				"error": err.Error(),
-			})
-			c.Abort()
+			returnErrorWithAbort(err)
 			return
 		}
 
@@ -251,5 +234,17 @@ func (authHandler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 
 		// after request
+	}
+}
+
+func curryReturnError(c *gin.Context, abort bool) func(err error) {
+	return func(err error) {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+
+		if abort {
+			c.Abort()
+		}
 	}
 }
