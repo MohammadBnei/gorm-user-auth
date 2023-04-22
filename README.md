@@ -774,6 +774,7 @@ func (h *UserHandler) GetUser(c *gin.Context)
 // @Router       /user [get]
 func (h *UserHandler) GetUsers(c *gin.Context)
 ```
+See how we used UserResponse struct ? You can put *almost* any go struct for object, including in the body with the [@Param tag](https://github.com/swaggo/swag#how-to-use-it-with-gin:~:text=Supported%20Web%20Frameworks-,gin,-echo).
 
 	Exercice
 
