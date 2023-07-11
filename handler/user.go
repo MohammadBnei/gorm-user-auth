@@ -97,6 +97,15 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	c.JSON(200, users)
 }
 
+// PostUser godoc
+// @Summary      Create a User
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  User
+// @Failure      400  {object}  ErrorResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /user [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	data := &model.UserCreateDTO{}
 

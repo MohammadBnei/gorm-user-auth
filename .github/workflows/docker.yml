@@ -1,0 +1,21 @@
+name: Docker publish image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    container: golang:1.20
+
+    steps:
+      - uses: actions/checkout@v3.5.3
+
+      - name: build
+        run: go build 
+
+  # push:
+  #   runs-on: ubuntu-latent
